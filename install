@@ -2,7 +2,7 @@
 NGINX_AVAILABLE="/etc/nginx/sites-available"
 NGINX_ENABLED="/etc/nginx/sites-enabled"
 WWW_ROOT="/var/www/"
-DB_FOLDER="https://dl.dropbox.com/u/55371184/server_config/"
+DB_FOLDER="https://raw.github.com/andreaswarnaar/Scripts/master/"
 SED=`which sed`
 
 clear
