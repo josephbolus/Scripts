@@ -2,7 +2,7 @@
 NGINX_AVAILABLE="/etc/nginx/sites-available"
 NGINX_ENABLED="/etc/nginx/sites-enabled"
 WWW_ROOT="/var/www/"
-DB_FOLDER="https://raw.github.com/andreaswarnaar/Scripts/master/"
+DB_FOLDER="https://raw.github.com/andreaswarnaar/Scripts/master"
 SED=`which sed`
 
 clear
@@ -108,9 +108,11 @@ echo "PHP done" >> .install_log
 
 ############# MySql ######################
 echo " --- Install Mysql set config"
-echo "Install MySql and config" >> .install_log
-DEBIAN_FRONTEND=noninteractive apt-get -yq install mysql-server mysql-client >> install_log
-echo "MySql and config done" >> .install_log
+echo "Install MySql and config" >> .w3s_auto_setup
+DEBIAN_FRONTEND=noninteractive apt-get -yq install mysql-server mysql-client >> build.log
+echo " --- Set Globalpassword as MySql root password"
+mysqladmin -u root password $GLOBAL_PASSWORD >> build.log
+echo "MySql and config done" >> .w3s_auto_setup
 ############# End MySql  #################
 
 ############# Nginx ######################
@@ -154,7 +156,12 @@ wget --quiet $DB_FOLDER"/www.conf" -O/etc/php5/fpm/pool.d/www.conf >> install_lo
 /etc/init.d/php5-fpm restart
 echo "Nginx and config done" >> .install_log
 ############# End Nginx  #################
-
+############# PHP Upload progress ########
+echo " --- Install PHP Upload progress"
+echo "Install PHP Upload progress" >> .w3s_auto_setup
+echo "extension=uploadprogress.so" >> /etc/php5/conf.d/uploadprogress.ini
+pecl install uploadprogress >> install_log
+############# End PHP Upload progress ####
 ############# Drupal Drush ###############
 echo " --- Install Drush"
 echo "Install drush" >> .install_log
@@ -171,4 +178,27 @@ echo "; configuration for php ps module \nextension=ps.so" > /etc/php5/cli/conf.
 echo "Test new drush command" >> .install_log
 drush build-test
 
+############# Postfix  ###################
+echo " --- Install Postfix"
+echo "Install postfix" >> .w3s_auto_setup
+DEBIAN_FRONTEND=noninteractive apt-get -yq install postfix >> build.log
+############# End Postfix#################
+
+############# xDebug #####################
+apt-get install -y php5-xdebug >> build.log
+echo " --- Installing xDebug"
+echo 'xdebug.remote_enable=1' >> /etc/php5/conf.d/xdebug.ini
+echo 'xdebug.idekey="PHPSTORM"' >> /etc/php5/conf.d/xdebug.ini
+echo 'xdebug.remote_port=9000' >> /etc/php5/conf.d/xdebug.ini
+echo 'xdebug.remote_handler=dbgp' >> /etc/php5/conf.d/xdebug.ini
+############# End xDebug #################
+
+############# Finalize Setup #############
+echo " --- Change file owner to www-data"
+adduser w3s www-data  >> build.log
+echo " --- Restart serivces"
+service php5-fpm restart
+service nginx restart
 updatedb
+echo " --- Ready to GO!"
+
