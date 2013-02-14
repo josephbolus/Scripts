@@ -108,11 +108,11 @@ echo "PHP done" >> .install_log
 
 ############# MySql ######################
 echo " --- Install Mysql set config"
-echo "Install MySql and config" >> .w3s_auto_setup
+echo "Install MySql and config" >> .install_log
 DEBIAN_FRONTEND=noninteractive apt-get -yq install mysql-server mysql-client >> build.log
 echo " --- Set Globalpassword as MySql root password"
-mysqladmin -u root password $GLOBAL_PASSWORD >> build.log
-echo "MySql and config done" >> .w3s_auto_setup
+mysqladmin -u root password $GLOBAL_PASSWORD >> .install_log
+echo "MySql and config done" >> .install_log
 ############# End MySql  #################
 
 ############# Nginx ######################
@@ -180,12 +180,12 @@ drush build-test
 
 ############# Postfix  ###################
 echo " --- Install Postfix"
-echo "Install postfix" >> .w3s_auto_setup
+echo "Install postfix" >> .install_log
 DEBIAN_FRONTEND=noninteractive apt-get -yq install postfix >> build.log
 ############# End Postfix#################
 
 ############# xDebug #####################
-apt-get install -y php5-xdebug >> build.log
+apt-get install -y php5-xdebug >> .install_log
 echo " --- Installing xDebug"
 echo 'xdebug.remote_enable=1' >> /etc/php5/conf.d/xdebug.ini
 echo 'xdebug.idekey="PHPSTORM"' >> /etc/php5/conf.d/xdebug.ini
@@ -195,7 +195,7 @@ echo 'xdebug.remote_handler=dbgp' >> /etc/php5/conf.d/xdebug.ini
 
 ############# Finalize Setup #############
 echo " --- Change file owner to www-data"
-adduser w3s www-data  >> build.log
+adduser $USERNAME www-data  >> .install_log
 echo " --- Restart serivces"
 service php5-fpm restart
 service nginx restart

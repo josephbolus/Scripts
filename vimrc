@@ -1,5 +1,3 @@
-"W3S Custom vim file
-
 runtime! debian.vim
 
 set encoding=utf-8
