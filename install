@@ -1,0 +1,174 @@
+#!/bin/bash
+NGINX_AVAILABLE="/etc/nginx/sites-available"
+NGINX_ENABLED="/etc/nginx/sites-enabled"
+WWW_ROOT="/var/www/"
+DB_FOLDER="https://dl.dropbox.com/u/55371184/server_config/"
+SED=`which sed`
+
+clear
+echo "######################################################################"
+echo "################# Starting Auto setup 0.7 ############################"
+echo "######################################################################"
+sleep 3;
+
+############# Settings ###################
+echo -n "Enter yourname:"
+read USERNAME
+
+echo -n "Enter projectname:"
+read PROJECT
+
+echo -e "Enter project hostname (used for Nginx host) \c"
+read PROJECTHOSTNAME
+
+echo -e "Rename system hostname ? [y/n] \c"
+read RENAMEHOSTNAME
+if [ $RENAMEHOSTNAME == 'y' ];then
+	echo -e "Provide a new system hostname: \c"
+	read NEWHOSTNAME
+fi
+
+echo -s -p "Enter global password :"
+read GLOBAL_PASSWORD
+############# End Settings ################
+
+############# Sudo ########################
+echo " --- Install sudo:"
+apt-get install sudo >> install_log
+echo " --- Add "$USERANME" to sudoers:"
+adduser $USERNAME sudo >> install_log
+echo "sudo done" > .install_log
+############# end Sudo ####################
+
+############# SSH #########################
+echo " --- Install SSH client and server"
+echo "Install ssh" >> .install_log
+apt-get install ssh openssh-server -y >> install_log
+echo "ssh openssh done" >> .install_log
+############# End ssh #####################
+
+############# ntp  ########################
+echo " --- Install Global time sync services"
+echo "Install ntp ntpdate" >> .install_log
+apt-get install ntp ntpdate -y >> install_log
+echo "ntp ntpdate done" >> .install_log
+############# End ntp  ####################
+
+############# Locate  #####################
+echo " --- Install locate for system search"
+apt-get install locate >> install_log
+echo "locate done" >> .install_log
+echo " --- update db for locate"
+updatedb >> install_log
+echo "update db done" >> .install_log
+############# End ocate  #################
+
+############# GIT-Core  ##################
+echo " --- Install GIT Core"
+apt-get install git-core -yq >> install_log
+echo "GIT-Core done" >> .install_log
+############# End GIT-Core ###############
+
+############# Vim  ########################
+echo " --- Install VIM and set config"
+echo "Install VIM and config" >> .install_log
+apt-get install vim -y >> install_log
+wget --quiet $DB_FOLDER"/dante.vim" -O/usr/share/vim/vim72/colors/dante.vim
+wget --quiet $DB_FOLDER"/vimrc" -O/usr/share/vim/vimrc
+echo "VIM and config done" >> .install_log
+############# End Vim  ####################
+
+############# Apt sources  ################
+echo " --- Adding GPG keys for sources"
+echo "Get GPG keys" >> .install_log
+gpg --quiet --keyserver keyserver.ubuntu.com --recv-key ABF5BD827BD9BF62
+gpg --quiet -a --export ABF5BD827BD9BF62 | apt-key add - >> install_log 
+wget --quiet http://www.dotdeb.org/dotdeb.gpg >> install_log
+cat dotdeb.gpg | apt-key add - >> install_log 
+rm dotdeb.gpg >> install_log 
+echo "GPG Keys done" >> .install_log
+echo "Add resources to sources.list" >> .install_log
+echo "--- Add resources to apt/sources.list"
+echo "--- Adding nginx packages debian squeeze"
+echo deb http://nginx.org/packages/debian/ squeeze nginx >> /etc/apt/sources.list
+echo "--- Adding dotdeb pagages debian squeeze all"
+echo deb http://packages.dotdeb.org squeeze all >> /etc/apt/sources.list
+echo "Add sources done" >> .install_log
+############# End Apt sources  ############
+
+############# Apt sources get update#######
+apt-get --quiet update >> update_log
+
+############# PHP  #######################
+echo " --- Install php set config"
+echo "Install PHP and config" >> .install_log
+apt-get install -yq php5-mysql php5-curl php5-gd php5-idn php-pear php5-imagick php5-imap php5-mcrypt php5-memcache php5-ming php5-ps php5-pspell php5-recode php5-snmp php5-xmlrpc php5-xsl php5-cli php-apc php5-sqlite >> install_log
+echo "PHP done" >> .install_log
+############# End PHP ####################
+
+############# MySql ######################
+echo " --- Install Mysql set config"
+echo "Install MySql and config" >> .install_log
+DEBIAN_FRONTEND=noninteractive apt-get -yq install mysql-server mysql-client >> install_log
+echo "MySql and config done" >> .install_log
+############# End MySql  #################
+
+############# Nginx ######################
+echo " --- Install Nginx set config"
+echo "Install Nginx and config" >> .install_log
+apt-get -y install nginx --force-yes >> install_log
+wget --quiet $DB_FOLDER"/nginx/nginx.conf" -O/etc/nginx/nginx.conf
+if [ -d $NGINX_AVAILABLE ]
+then
+echo " --- "$NGINX_AVAILABLE" exists."
+else
+echo " --- Create "$NGINX_AVAILABLE
+mkdir $NGINX_AVAILABLE
+fi
+if [ -d $NGINX_ENABLED ]
+then
+echo " --- "$NGINX_ENABLED" exists."
+else
+echo " --- Create folder "$NGINX_ENABLED
+mkdir $NGINX_ENABLED
+fi
+wget $DB_FOLDER"/newproject_vhost" -O$NGINX_AVAILABLE"/"$PROJECT
+if [ -e $NGINX_AVAILABLE"/"$PROJECT ]
+then
+$SED -i "s/@@HOSTNAME@@/"$PROJECT"/g" $NGINX_AVAILABLE"/"$PROJECT
+$SED -i "s#@@PATH@@#"$WWW_ROOT$PROJECT"#g" $NGINX_AVAILABLE"/"$PROJECT
+$SED -i "s#@@LOG_PATH@@#"$WWW_ROOT$PROJECT"#g" $NGINX_AVAILABLE"/"$PROJECT
+fi
+ln -s $NGINX_AVAILABLE"/"$PROJECT $NGINX_ENABLED"/"$PROJECT
+echo "Nginx and config done" >> .install_log
+############# End Nginx  #################
+
+############# PHP-FPM ####################
+echo " --- Install php5-fpm set config"
+echo "Install php5-fpm and config" >> .install_log
+##echo "*"
+apt-get -y install php5-fpm >> install_log
+wget --quiet $DB_FOLDER"/php.ini" -O/etc/php5/fpm/php.ini >> install_log
+wget --quiet $DB_FOLDER"/www.conf" -O/etc/php5/fpm/pool.d/www.conf >> install_log
+/etc/init.d/nginx restart
+/etc/init.d/php5-fpm restart
+echo "Nginx and config done" >> .install_log
+############# End Nginx  #################
+
+############# Drupal Drush ###############
+echo " --- Install Drush"
+echo "Install drush" >> .install_log
+wget --quiet -O - http://ftp.drupal.org/files/projects/drush-7.x-5.7.tar.gz | sudo tar -zxf - -C /usr/local/share >> install_log
+ln -s /usr/local/share/drush/drush /usr/local/bin/drush
+echo "Drush done" >> .install_log
+############# End Drush  #################
+############# Drupal Drush newproject ####
+echo " --- Get build commands for drush"
+wget --quiet $DB_FOLDER"/build.drush.inc" -O/usr/local/share/drush/commands/build.drush.inc
+echo " --- Fix # deprecated warning for PHP CLI" >> .install_log
+echo "; configuration for php MING module \nextension=ming.so" > /etc/php5/cli/conf.d/ming.ini
+echo "; configuration for php ps module \nextension=ps.so" > /etc/php5/cli/conf.d/ps.ini
+echo "Test new drush command" >> .install_log
+drush build-test
+
+updatedb
